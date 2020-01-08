@@ -1,0 +1,52 @@
+Enable Sparc Host
+
+# if there are multiple NICs, and you need better network performance, aggregate NICs
+
+# dladm create-aggr -l net2 -l net3 vaggr1
+# ipadm create-ip vaggr1
+
+# ipadm create-addr -T static -a 192.168.101.89/24 vaggr1/v4
+
+# zfs create -V 100G vpool/ldom03
+
+# ldm add-vcc port-range=5000-5100 primary-vcc0 primary
+# ldm add-vds primary-vds0 primary
+# ldm add-vsw net-dev=vaggr1 primary-vsw0 primary
+
+
+Create Guest Domain
+
+# ldm add-domain ldom03
+
+add whole core
+# ldm set-core 4 ldom03
+
+# ldm add-mem 32G ldom03
+# ldm add-vnet vnet0 primary-vsw0 ldom03
+# zfs create -o mountpoint=/vpool/vdisks vpool/vdisks
+# zfs create -o mountpoint=/vpool/vdisks/ldom03 vpool/vdisks/ldom03
+
+# zfs create -V 60gb vpool/vdisks/ldom03/ldom03-disk0
+# ldm add-vdsdev /dev/zvol/dsk/vpool/vdisks/ldom03/ldom03-disk0 ldom03_disk0@primary-vds0
+# ldm add-vdisk disk0 ldom03_disk0@primary-vds0 ldom03
+# zfs snapshot vpool/vdisks/ldom03-disk0@version_1
+# ldm set-var auto-boot\?=true ldom03
+# ldm set-var boot-device=disk0 ldom03
+# ldm bind-domain ldom03
+# ldm list-domain ldom03
+# ldm start ldom03
+
+Bind Solaris ISO images to target LDOM guest
+# ldm add-vdsdev /apps/solaris/sol-11_2-text-sparc.iso iso_sol_11_2@primary-vds0
+# ldm add-vdisk vdisk_iso iso_sol_11_2@primary-vds0 ldom03
+# ldm list-bindings
+
+# ldm add-core 2 ldom03
+Remove V-Disk
+# ldm stop ldom03
+# ldm unbind ldom03
+# ldm rm-vdisk vdisk_iso ldom03
+# ldm rm-vdsdev iso_vol@primary-vds0
+
+Guest Domain is ready to install Solaris
+# telnet localhost 5000
